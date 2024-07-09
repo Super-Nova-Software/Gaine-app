@@ -1,7 +1,5 @@
 import { Poppins } from "next/font/google";
-
 import { cn } from "@/lib/utils";
-import { SignInButton, SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
 
 const font = Poppins({
   subsets: ["latin"],

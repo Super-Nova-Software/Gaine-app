@@ -1,7 +1,9 @@
 "use client";
-import * as z from "zod";
+
+import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
+import { startTransition, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -11,124 +13,77 @@ import {
 } from "@/components/ui/dialog";
 import {
   Form,
-  FormControl,
   FormField,
-  FormItem,
-  FormLabel,
-  FormMessage
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { useRouter } from "next/navigation";
 import { useModal } from "@/hooks/use-modal-store";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue
-} from "@/components/ui/select";
-import { gql, useMutation } from "@apollo/client";
-// import { ChannelCategoryType } from "@/gql/graphql";
-
-
-const formSchema = z.object({
-  name: z.string().min(1, {
-    message: "Channel name is required.",
-  }).refine((name) => name !== "general", {
-    message: "Channel name cannot be 'general'",
-  }),
-  type: z.string().nullable(),
-});
-
-
-
-const ADD_CHANNEL = gql`
-  mutation AddChannel($name: String!, $serverId: Int!, $categoryId: Int) {
-    createChannel(name: $name, serverId: $serverId, categoryId: $categoryId) {
-      channel {
-        id
-        name
-        server {
-          id
-          name
-        }
-        category {
-          id
-          name
-        }
-      }
-    }
-  }
-`;
-
+import { CreateChannelSchema } from "@/schemas";
+import { toast } from "sonner";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
+import { ServerchannelsChannelChannelTypeChoices } from "@/graphql/gql/graphql";
+import { createChannel } from "@/app/actions/channel";
+import { EmojiPicker } from "../emoji-picker";
+import { Checkbox } from "../ui/checkbox";
+import { Label } from "../ui/label";
+import { useParams } from "next/navigation";
 
 export const CreateChannelModal = () => {
   const { isOpen, onClose, type, data } = useModal();
-  const router = useRouter();
-  const [createChannel, { loading }] = useMutation(ADD_CHANNEL);
-
-  const { register, handleSubmit, formState: { errors } } = useForm({
-    resolver: zodResolver(formSchema),
-    });
+  const params = useParams();
   const isModalOpen = isOpen && type === "createChannel";
-  const { ChannelCategoryType } = data;
- 
+  const { channelType } = data;
+
   const form = useForm({
-    resolver: zodResolver(formSchema),
+    resolver: zodResolver(CreateChannelSchema),
     defaultValues: {
       name: "",
-      type: "text",
-    }
+      channelType: channelType || ServerchannelsChannelChannelTypeChoices.Text,
+      emoji: "",
+      topic: "",
+      isprivate: false,
+      serverId: params?.serverId || "",
+    },
   });
 
+  useEffect(() => {
+    if (channelType) {
+      form.setValue("channelType", channelType);
+    } else {
+      form.setValue("channelType", ServerchannelsChannelChannelTypeChoices.Text);
+    }
+  }, [channelType, form]);
 
   const isLoading = form.formState.isSubmitting;
 
-  // const onSubmit = async (values: z.infer<typeof formSchema>) => {
-  //   try {
-  //     const url = qs.stringifyUrl({
-  //       url: "/api/channels",
-  //       query: {
-  //         serverId: params?.serverId
-  //       }
-  //     });
-  //     await axios.post(url, values);
-
-  //     form.reset();
-  //     router.refresh();
-  //     onClose();
-  //   } catch (error) {
-  //     console.log(error);
-  //   }
-  // }
-
-  const onSubmit = async (data: z.infer<typeof formSchema>) => {
-    try {
-      const { data: { createChannel: createdChannel } } = await createChannel({
-        variables: {
-          input: {
-            name: data.name,
-            category: data.type,
+  const onSubmit = async (values: z.infer<typeof CreateChannelSchema>) => {
+    startTransition(async () => {
+      try {
+        toast.promise(
+          createChannel(values),
+          {
+            loading: "Creating a new channel...",
+            success: `Channel ${values.name} created successfully!`,
+            error: "Failed to create a channel.",
           }
-        }
-      });
-      console.log("Created channel:", createdChannel);
-      router.refresh(); // Refresh the page or navigate to the updated channel list
-      onClose();
-    } catch (error) {
-      console.error("Error creating channel:", error);
-    }
+        );
+        form.reset();
+        onClose();
+      } catch (error) {
+        console.error("Unexpected error:", error);
+        toast.error("Failed to create a channel. Please try again.");
+      }
+    });
   };
 
   const handleClose = () => {
     form.reset();
     onClose();
-  }
+  };
 
   return (
     <Dialog open={isModalOpen} onOpenChange={handleClose}>
-      <DialogContent className="bg-white text-black p-0 overflow-hidden">
+      <DialogContent className="dark:bg-[#1E1F22] bg-white p-0 overflow-hidden">
         <DialogHeader className="pt-8 px-6">
           <DialogTitle className="text-2xl text-center font-bold">
             Create Channel
@@ -141,66 +96,88 @@ export const CreateChannelModal = () => {
                 control={form.control}
                 name="name"
                 render={({ field }) => (
-                  <FormItem>
-                    <FormLabel
-                      className="uppercase text-xs font-bold text-zinc-500 dark:text-secondary/70"
-                    >
-                      Channel name
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        disabled={isLoading}
-                        className="bg-zinc-300/50 border-0 focus-visible:ring-0 text-black focus-visible:ring-offset-0"
-                        placeholder="Enter channel name"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
+                  <Input
+                    disabled={isLoading}
+                    className="bg-zinc-300/50 border-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+                    placeholder="Enter channel name"
+                    {...field}
+                  />
                 )}
               />
               <FormField
                 control={form.control}
-                name="type"
+                name="emoji"
                 render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Channel Type</FormLabel>
-                    <Select
+                  <div className="relative">
+                    <Input
                       disabled={isLoading}
-                      onValueChange={field.onChange}
-                    >
-                      <FormControl>
-                        <SelectTrigger
-                          className="bg-zinc-300/50 border-0 focus:ring-0 text-black ring-offset-0 focus:ring-offset-0 capitalize outline-none"
-                        >
-                          <SelectValue placeholder="Select a channel type" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {/* {Object.values(ChannelCategoryType).map((type) => (
-                          <SelectItem
-                            key={type}
-                            value={type}
-                            className="capitalize"
-                          >
-                            {type.toLowerCase()}
-                          </SelectItem>
-                        ))} */}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
+                      className="bg-zinc-300/50 border-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+                      placeholder="Enter emoji"
+                      {...field}
+                    />
+                    <div className="absolute top-7 right-8">
+                      <EmojiPicker
+                        onChange={(emoji) => {
+                          field.onChange(emoji);
+                        }}
+                      />
+                    </div>
+                  </div>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="topic"
+                render={({ field }) => (
+                  <Input
+                    disabled={isLoading}
+                    className="bg-zinc-300/50 border-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+                    placeholder="Enter channel topic"
+                    {...field}
+                  />
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="channelType"
+                render={({ field }) => (
+                  <Select disabled={isLoading} onValueChange={field.onChange}>
+                    <SelectTrigger className="bg-zinc-300/50 border-0 focus:ring-0 ring-offset-0 focus:ring-offset-0 capitalize outline-none">
+                      <SelectValue placeholder="Select a channel type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.values(ServerchannelsChannelChannelTypeChoices).map((type) => (
+                        <SelectItem key={type} value={type} className="capitalize">
+                          {type.toLowerCase()}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="isprivate"
+                render={({ field }) => (
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      disabled={isLoading}
+                      checked={field.value}
+                      onCheckedChange={(e) => field.onChange(e.target.checked)}
+                    />
+                    <Label htmlFor="isprivate" className="text-sm">Private Channel</Label>
+                  </div>
                 )}
               />
             </div>
-            <DialogFooter className="bg-gray-100 px-6 py-4">
-              <Button variant="primary" disabled={isLoading}>
-                Create
+            <DialogFooter className="px-6 py-4">
+              <Button type="submit" variant="primary" disabled={isLoading}>
+                {isLoading ? "Creating..." : "Create"}
               </Button>
             </DialogFooter>
           </form>
         </Form>
       </DialogContent>
     </Dialog>
-  )
-}
+  );
+};

@@ -12,6 +12,7 @@ import {
   CommandItem,
   CommandList
 } from "@/components/ui/command";
+import { Skeleton } from "../ui/skeleton";
 
 interface ServerSearchProps {
   data: {
@@ -101,3 +102,15 @@ export const ServerSearch = ({
     </>
   )
 }
+
+ServerSearch.Skeleton = function SearchSkeleton() {
+  return (
+  <div className="group px-2 py-2 rounded-md flex items-center gap-x-2 w-full transition">
+    <Skeleton className="w-4 h-4 bg-[rgb(50,129,70)]" />
+    <Skeleton className="w-20 h-4 bg-[rgb(50,129,70)]" />
+    <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 dark:bg-[rgb(43,45,49)] bg-[#F2F3F5] px-1.5 ml-auto">
+      <Skeleton className="w-5 h-5 bg-[rgb(50,129,70)]" />
+    </kbd>
+  </div>
+);
+};

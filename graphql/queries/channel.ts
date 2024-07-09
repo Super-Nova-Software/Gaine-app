@@ -15,6 +15,44 @@ export const GET_CHANNEL_CATEGORIES = gql`
   }
 `;
 
+export const GET_CHANNEL_BY_SERVER = gql`
+query ChannelsByServer($serverId: UUID!) {
+  channelsByServer(serverId: $serverId) {
+    server{
+      id
+      name
+      icon
+      members{
+        id
+        user{
+          id
+          username
+        }
+      }
+      roles{
+        id
+        name
+        permissions{
+          id
+          name
+          codename
+        }
+      }
+    }
+    id
+    name
+    emoji
+    channelType
+    isPrivate
+    topic
+    category {
+      id
+      name
+    }
+  }
+}
+`;
+
 export const GET_CHANNELS = gql`
   query GetChannels {
     channels {

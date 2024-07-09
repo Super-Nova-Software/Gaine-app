@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { LiveKitRoom, VideoConference } from "@livekit/components-react";
 import "@livekit/components-styles";
 
-import { useUser } from "@clerk/nextjs";
 import { Loader2 } from "lucide-react";
 
 interface MediaRoomProps {
@@ -18,13 +17,16 @@ export const MediaRoom = ({
   video,
   audio
 }: MediaRoomProps) => {
-  const { user } = useUser();
+  const  user = [{
+    firstName:"mohamed",
+    lastName:"alhbob",
+  } ]
   const [token, setToken] = useState("");
 
   useEffect(() => {
-    if (!user?.firstName || !user?.lastName) return;
+    if (!user[0]?.firstName || !user[0]?.lastName) return;
 
-    const name = `${user.firstName} ${user.lastName}`;
+    const name = `${user[0].firstName} ${user[0].lastName}`;
 
     (async () => {
       try {
@@ -35,8 +37,7 @@ export const MediaRoom = ({
         console.log(e);
       }
     })()
-  }, [user?.firstName, user?.lastName, chatId]);
-
+  }, [user[0]?.firstName, user[0]?.lastName, chatId]);
   if (token === "") {
     return (
       <div className="flex flex-col flex-1 justify-center items-center">

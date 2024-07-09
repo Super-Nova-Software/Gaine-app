@@ -1,33 +1,20 @@
 "use client";
-
-import { Fragment, useRef, ElementRef } from "react";
+import { useEffect, useRef } from "react";
 import { format } from "date-fns";
-
 import { Loader2, ServerCrash } from "lucide-react";
-
-import { useChatQuery } from "@/hooks/use-chat-query";
-import { useChatSocket } from "@/hooks/use-chat-socket";
-import { useChatScroll } from "@/hooks/use-chat-scroll";
-
 import { ChatWelcome } from "./chat-welcome";
 import { ChatItem } from "./chat-item";
-import { MemberType, MessageType, UserType } from "@/gql/graphql";
+import { MemberType } from "@/graphql/gql/graphql";
+import { useMessages } from "@/hooks/graphql/chat/useMessage";
+
 
 const DATE_FORMAT = "d MMM yyyy, HH:mm";
-
-type MessageWithMemberWithProfile = MessageType & {
-  member: MemberType & {
-    profile: UserType
-  }
-}
 
 interface ChatMessagesProps {
   name: string;
   member: MemberType;
+  emoji: string;
   chatId: string;
-  apiUrl: string;
-  socketUrl: string;
-  socketQuery: Record<string, string>;
   paramKey: "channelId" | "conversationId";
   paramValue: string;
   type: "channel" | "conversation";
@@ -36,43 +23,22 @@ interface ChatMessagesProps {
 export const ChatMessages = ({
   name,
   member,
-  chatId,
-  apiUrl,
-  socketUrl,
-  socketQuery,
-  paramKey,
   paramValue,
+  emoji,
   type,
 }: ChatMessagesProps) => {
-  const queryKey = `chat:${chatId}`;
-  const addKey = `chat:${chatId}:messages`;
-  const updateKey = `chat:${chatId}:messages:update` 
+  const chatRef = useRef<HTMLDivElement>(null);
+  const bottomRef = useRef<HTMLDivElement>(null);
 
-  const chatRef = useRef<ElementRef<"div">>(null);
-  const bottomRef = useRef<ElementRef<"div">>(null);
+  const { messages, loading, error } = useMessages(paramValue );
 
-  const {
-    data,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-    status,
-  } = useChatQuery({
-    queryKey,
-    apiUrl,
-    paramKey,
-    paramValue,
-  });
-  useChatSocket({ queryKey, addKey, updateKey });
-  useChatScroll({
-    chatRef,
-    bottomRef,
-    loadMore: fetchNextPage,
-    shouldLoadMore: !isFetchingNextPage && !!hasNextPage,
-    count: data?.pages?.[0]?.items?.length ?? 0,
-  })
+  useEffect(() => {
+    if (bottomRef.current) {
+      bottomRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [messages]);
 
-  if (status === "loading") {
+  if (loading) {
     return (
       <div className="flex flex-col flex-1 justify-center items-center">
         <Loader2 className="h-7 w-7 text-zinc-500 animate-spin my-4" />
@@ -80,10 +46,10 @@ export const ChatMessages = ({
           Loading messages...
         </p>
       </div>
-    )
+    );
   }
 
-  if (status === "error") {
+  if (error) {
     return (
       <div className="flex flex-col flex-1 justify-center items-center">
         <ServerCrash className="h-7 w-7 text-zinc-500 my-4" />
@@ -91,54 +57,37 @@ export const ChatMessages = ({
           Something went wrong!
         </p>
       </div>
-    )
+    );
   }
+
+  // if (messages.length === 0) {
+  //   return (
+  //     <div className="flex flex-col flex-1 justify-center items-center">
+  //       <p className="text-xs text-zinc-500 dark:text-zinc-400">
+  //         No messages yet.
+  //       </p>
+  //     </div>
+  //   );
+  // }
 
   return (
     <div ref={chatRef} className="flex-1 flex flex-col py-4 overflow-y-auto">
-      {!hasNextPage && <div className="flex-1" />}
-      {!hasNextPage && (
-        <ChatWelcome
-          type={type}
-          name={name}
-        />
-      )}
-      {hasNextPage && (
-        <div className="flex justify-center">
-          {isFetchingNextPage ? (
-            <Loader2 className="h-6 w-6 text-zinc-500 animate-spin my-4" />
-          ) : (
-            <button
-              onClick={() => fetchNextPage()}
-              className="text-zinc-500 hover:text-zinc-600 dark:text-zinc-400 text-xs my-4 dark:hover:text-zinc-300 transition"
-            >
-              Load previous messages
-            </button>
-          )}
-        </div>
-      )}
+      <ChatWelcome type={type} emoji={emoji} name={name} />
       <div className="flex flex-col-reverse mt-auto">
-        {data?.pages?.map((group, i) => (
-          <Fragment key={i}>
-            {group.items.map((message: MessageWithMemberWithProfile) => (
-              <ChatItem
-                key={message.id}
-                id={message.id}
-                currentMember={member}
-                member={message.member}
-                content={message.content}
-                // fileUrl={message.attachments}
-                // deleted={message.reactionSet}
-                timestamp={format(new Date(message.timestamp), DATE_FORMAT)}
-                isUpdated={message.editedTimestamp !== message.timestamp}
-                socketUrl={socketUrl}
-                socketQuery={socketQuery}
-              />
-            ))}
-          </Fragment>
+        {messages.map((message) => (
+          <ChatItem
+            key={message.id}
+            id={message.id}
+            currentMember={member}
+            member={message.sender}
+            content={message.content}
+            deleted={message.deleted}
+            timestamp={format(new Date(message.timestamp), DATE_FORMAT)}
+            isUpdated={message.editedTimestamp !== message.timestamp}
+          />
         ))}
       </div>
       <div ref={bottomRef} />
     </div>
-  )
-}
+  );
+};

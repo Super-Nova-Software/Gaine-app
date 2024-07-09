@@ -1,15 +1,16 @@
 
-import { ChannelCategoryType, ChannelType, ServerType } from "@/graphql/gql/graphql";
+import { ChannelCategoryType, ChannelType, PermissionType, ServerType, ServerchannelsChannelChannelTypeChoices } from "@/graphql/gql/graphql";
 import { create } from "zustand";
 
-export type ModalType = "createServer" | "invite" | "editServer" | "members" | "createChannel" | "leaveServer" | "deleteServer" | "deleteChannel" | "editChannel" | "messageFile" | "deleteMessage";
+export type ModalType = "createServer" | "invite" | "editServer" | "members" | "createServerRole" | "createChannel"|"choosefiles"| "createEvent" | "createCategory" | "leaveServer" | "deleteServer" | "deleteChannel" | "editChannel" | "messageFile" | "deleteMessage";
 
 interface ModalData {
   server?: ServerType;
   channel?: ChannelType;
+  messageId?: number | undefined;
   ChannelCategoryType?: ChannelCategoryType;
-  apiUrl?: string;
-  query?: Record<string, any>;
+  channelType?: ServerchannelsChannelChannelTypeChoices;
+  permissions?: PermissionType[];
 }
 
 interface ModalStore {

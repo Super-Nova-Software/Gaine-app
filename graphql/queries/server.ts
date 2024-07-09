@@ -6,12 +6,54 @@ export const GET_SERVER = gql`
     server(id: $id) {
       id
       name
-      owner {
+      icon
+      description
+      owner{
         id
         username
       }
-      description
-      icon
+      invites{
+        id
+        code
+      }
+      members {
+        id
+        user{
+          id
+          username
+          avatar
+          discriminator
+          email
+          userstatus{
+            id
+            status
+            activity
+          }
+        }
+        roles{
+          id
+          name
+          color
+          permissions{
+            id
+            name
+          }
+        }
+      }
+      channelSet{
+        id
+        name
+        channelType
+        emoji
+      }
+      categories{
+        id
+        name
+      }
+      invites{
+        id
+        code
+      }
     }
   }
 `;
@@ -84,24 +126,29 @@ export const GET_ALL_SERVER_ROLES = gql`
 `;
 
 export const GET_MEMBER = gql`
-  query GetMember($id: Int!) {
-    member(id: $id) {
+query GetMember($serverId: UUID!, $userId: UUID!) {
+  member(serverId: $serverId, userId: $userId) {
+    id
+    user {
       id
-      user {
-        id
-        username
-      }
-      server {
+      username
+      avatar  
+    }
+    server {
+      id
+      name
+    }
+    roles{
+      id
+      name
+        permissions{
         id
         name
+        codename
       }
-      roles {
-        id
-        name
-      }
-      joinedAt
     }
   }
+}
 `;
 
 export const GET_ALL_MEMBERS = gql`

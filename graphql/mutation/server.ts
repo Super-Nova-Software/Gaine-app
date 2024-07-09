@@ -115,7 +115,7 @@ export const DELETE_SERVER_ROLE = gql`
 `;
 
 export const ADD_ROLE_TO_MEMBER = gql`
-  mutation AddRoleToMember($roleId: Int!, $memberId: Int!) {
+  mutation AddRoleToMember($roleId: Int!, $memberId: UUID!) {
     addRoleToMember(roleId: $roleId, memberId: $memberId) {
       member {
         id
@@ -138,7 +138,7 @@ export const ADD_ROLE_TO_MEMBER = gql`
 `;
 
 export const REMOVE_ROLE_FROM_MEMBER = gql`
-  mutation RemoveRoleFromMember($roleId: Int!, $memberId: Int!) {
+  mutation RemoveRoleFromMember($roleId: Int!, $memberId: UUID!) {
     removeRoleFromMember(roleId: $roleId, memberId: $memberId) {
       member {
         id
@@ -184,7 +184,7 @@ export const ADD_MEMBER_TO_SERVER = gql`
 `;
 
 export const DELETE_MEMBER_FROM_SERVER = gql`
-  mutation DeleteMemberFromServer($memberId: Int!) {
+  mutation DeleteMemberFromServer($memberId: UUID!) {
     deleteMemberFromServer(memberId: $memberId) {
       success
     }

@@ -1,11 +1,9 @@
 "use client";
 
 import * as z from "zod";
-import axios from "axios";
-import qs from "query-string";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Plus } from "lucide-react";
+import { Plus, Send } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 import {
@@ -17,51 +15,61 @@ import {
 import { Input } from "@/components/ui/input";
 import { useModal } from "@/hooks/use-modal-store";
 import { EmojiPicker } from "@/components/emoji-picker";
+import { startTransition, useState } from "react";
+import { toast } from "sonner";
+import { createMessage } from "@/app/actions/messages";
+import { CreateMessageSchema } from "@/schemas";
+import { Button } from "../ui/button";
+import { PermissionType } from "@/graphql/gql/graphql";
+import { userId } from "@/data/user";
 
 interface ChatInputProps {
-  apiUrl: string;
-  query: Record<string, any>;
   name: string;
+  channelId?: string;
   type: "conversation" | "channel";
+  permissions?: PermissionType[];
 }
 
-const formSchema = z.object({
-  content: z.string().min(1),
-});
-
 export const ChatInput = ({
-  apiUrl,
-  query,
   name,
   type,
+  channelId,
+  permissions
 }: ChatInputProps) => {
   const { onOpen } = useModal();
   const router = useRouter();
-
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
+  const [file, setFile] = useState<File>();
+  
+  const form = useForm<z.infer<typeof CreateMessageSchema>>({
+    resolver: zodResolver(CreateMessageSchema),
     defaultValues: {
       content: "",
+      channelId: channelId,
+      senderId: userId,
     }
   });
 
   const isLoading = form.formState.isSubmitting;
 
-  const onSubmit = async (values: z.infer<typeof formSchema>) => {
-    try {
-      const url = qs.stringifyUrl({
-        url: apiUrl,
-        query,
-      });
 
-      await axios.post(url, values);
-
-      form.reset();
-      router.refresh();
-    } catch (error) {
-      console.log(error);
-    }
-  }
+  const onSubmit = async (values: z.infer<typeof CreateMessageSchema>) => {
+    startTransition(async () => {
+      try {
+        toast.promise(
+          createMessage( values ),
+          {
+            loading: "sending...",
+            success: `Message sende successfully!`,
+            error: "Failed to sende a Message.",
+          }
+        );
+        form.reset();
+        router.refresh();
+      } catch (error) {
+        console.error("Unexpected error:", error);
+      }
+    });
+  };
 
   return (
     <Form {...form}>
@@ -75,7 +83,7 @@ export const ChatInput = ({
                 <div className="relative p-4 pb-6">
                   <button
                     type="button"
-                    onClick={() => onOpen("messageFile", { apiUrl, query })}
+                    onClick={() => onOpen("choosefiles" )}
                     className="absolute top-7 left-8 h-[24px] w-[24px] bg-zinc-500 dark:bg-zinc-400 hover:bg-zinc-600 dark:hover:bg-zinc-300 transition rounded-full p-1 flex items-center justify-center"
                   >
                     <Plus className="text-white dark:text-[#313338]" />
@@ -86,10 +94,13 @@ export const ChatInput = ({
                     placeholder={`Message ${type === "conversation" ? name : "#" + name}`}
                     {...field}
                   />
-                  <div className="absolute top-7 right-8">
+                  <div className="absolute top-5 right-8">
                     <EmojiPicker
                       onChange={(emoji: string) => field.onChange(`${field.value} ${emoji}`)}
                     />
+              <Button type="submit" className="border-none bg- hover:bg-" disabled={isLoading}>
+                <Send />
+              </Button>
                   </div>
                 </div>
               </FormControl>

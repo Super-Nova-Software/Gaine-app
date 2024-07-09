@@ -1,6 +1,5 @@
 "use client";
 
-import qs from "query-string";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Video, VideoOff } from "lucide-react";
 
@@ -14,16 +13,16 @@ export const ChatVideoButton = () => {
 
   const isVideo = searchParams?.get("video");
 
-  const onClick = () => {
-    const url = qs.stringifyUrl({
-      url: pathname || "",
-      query: {
-        video: isVideo ? undefined : true,
-      }
-    }, { skipNull: true });
+  // const onClick = () => {
+  //   const url = qs.stringifyUrl({
+  //     url: pathname || "",
+  //     query: {
+  //       video: isVideo ? undefined : true,
+  //     }
+  //   }, { skipNull: true });
 
-    router.push(url);
-  }
+  //   router.push(url);
+  // }
   
   const Icon = isVideo ? VideoOff : Video;
   const tooltipLabel = isVideo ? "End video call" : "Start video call";
